@@ -84,7 +84,7 @@ class LocalFreeIPAAuthenticator(LocalAuthenticator):
     def add_system_user(self, user):
         user_add_cmd = shlex.split(self.user_add_cmd) + [user.name]
         if self.default_group:
-            user_add_cmd.extend(["--posix_group", self.default_group])
+            user_add_cmd.extend(["--group", self.default_group])
 
         try:
             with self.kerberos_ticket():
