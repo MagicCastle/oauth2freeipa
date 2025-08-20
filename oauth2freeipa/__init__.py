@@ -23,11 +23,6 @@ class LocalFreeIPAAuthenticator(LocalAuthenticator):
 
     max_add_user_retry = Int(10, config=True, help="")
 
-    default_group = Unicode(
-        "def-sponsor00",
-        config=True,
-        help="",
-    )
     keytab_path = Unicode(
         "/etc/jupyterhub/jupyterhub.keytab",
         config=True,
@@ -39,9 +34,9 @@ class LocalFreeIPAAuthenticator(LocalAuthenticator):
         help="",
     )
     user_add_cmd = Unicode(
-        "ipa_create_user.py",
+        "ipa_create_user.py {username}",
         config=True,
-        help="",
+        help="Command to add user defined as a string template where {username} is replace by the username.",
     )
     pre_spawn_timeout = Int(
         30,
@@ -84,10 +79,7 @@ class LocalFreeIPAAuthenticator(LocalAuthenticator):
                         await asyncio.sleep(1)
 
     def add_system_user(self, user):
-        user_add_cmd = shlex.split(self.user_add_cmd) + [user.name]
-        if self.default_group:
-            user_add_cmd.extend(["--posix_group", self.default_group])
-
+        user_add_cmd = shlex.split(self.user_add_cmd.format(username=user.name))
         try:
             with self.kerberos_ticket():
                 subprocess.run(user_add_cmd, check=True, capture_output=True)
