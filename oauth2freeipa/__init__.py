@@ -15,7 +15,7 @@ from ltiauthenticator.lti11.auth import LTI11Authenticator
 from ltiauthenticator.lti13.auth import LTI13Authenticator
 from batchspawner import SlurmSpawner
 
-from traitlets import Unicode, Int
+from traitlets import Unicode, Int, Bool
 
 
 class LocalFreeIPAAuthenticator(LocalAuthenticator):
@@ -42,6 +42,11 @@ class LocalFreeIPAAuthenticator(LocalAuthenticator):
         30,
         config=True,
         help="How long the authenticator can wait on user creation before cancelling the spawn",
+    )
+    pre_spawn_check_home = Bool(
+        True,
+        config=True,
+        help="Validate that /home/{username} exists in pre_spawn. Disable if /home is not available on the JupyterHub server.",
     )
 
     @contextmanager
@@ -70,9 +75,10 @@ class LocalFreeIPAAuthenticator(LocalAuthenticator):
             # as an external process is in charge of creating the home folder
             # and the Slurm account.
             async with asyncio.timeout(self.pre_spawn_timeout):
-                while not path.exists(f"/home/{user.name}"):
-                    self.log.warning(f"Home folder for {user.name} is missing")
-                    await asyncio.sleep(1)
+                if self.pre_spawn_check_home:
+                    while not path.exists(f"/home/{user.name}"):
+                        self.log.warning(f"Home folder for {user.name} is missing")
+                        await asyncio.sleep(1)
                 if isinstance(spawner, SlurmSpawner):
                     while len(subprocess.run(['sacctmgr', 'show', 'user', '-n', user.name], capture_output=True).stdout) == 0:
                         self.log.warning(f"Slurm account for {user.name} is missing")
